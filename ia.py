@@ -1,43 +1,45 @@
-import time
+import numpy as np
+import matplotlib.pyplot as plt
 
-class Parqueadero:
-    def __init__(self, capacidad, tarifa_por_hora):
-        self.capacidad = capacidad
-        self.tarifa_por_hora = tarifa_por_hora
-        self.espacios = {i: None for i in range(1, capacidad+1)}
+# Número de drones
+n_drones = 10
 
-    def asignar_espacio(self, placa):
-        for espacio, ocupado in self.espacios.items():
-            if ocupado is None:
-                self.espacios[espacio] = {"placa": placa, "entrada": time.time()}
-                print(f"Vehículo {placa} asignado al espacio {espacio}")
-                return espacio
-        print("No hay espacios disponibles")
-        return None
+# Posiciones iniciales (todos en el origen)
+drones = np.zeros((n_drones, 2))
 
-    def liberar_espacio(self, espacio):
-        if self.espacios[espacio]:
-            datos = self.espacios[espacio]
-            tiempo_total = (time.time() - datos["entrada"]) / 3600  # horas
-            costo = round(tiempo_total * self.tarifa_por_hora, 2)
-            print(f"Vehículo {datos['placa']} salió. Tiempo: {tiempo_total:.2f}h. Costo: ${costo}")
-            self.espacios[espacio] = None
-            return costo
+def formar_circulo(radio=5):
+    """Distribuye los drones en un círculo"""
+    angulos = np.linspace(0, 2*np.pi, n_drones, endpoint=False)
+    return np.column_stack((radio*np.cos(angulos), radio*np.sin(angulos)))
+
+def formar_cuadrado(lado=8):
+    """Distribuye los drones en un cuadrado"""
+    puntos = []
+    # 4 lados del cuadrado
+    for i in range(n_drones):
+        if i < n_drones/4:
+            puntos.append([i*(lado/(n_drones/4)), 0])
+        elif i < n_drones/2:
+            puntos.append([lado, (i-n_drones/4)*(lado/(n_drones/4))])
+        elif i < 3*n_drones/4:
+            puntos.append([lado-(i-n_drones/2)*(lado/(n_drones/4)), lado])
         else:
-            print("Ese espacio ya está libre")
-            return 0
+            puntos.append([0, lado-(i-3*n_drones/4)*(lado/(n_drones/4))])
+    return np.array(puntos) - lado/2  # centrar
 
-    def estado_parqueadero(self):
-        for espacio, datos in self.espacios.items():
-            if datos:
-                print(f"Espacio {espacio}: ocupado por {datos['placa']}")
-            else:
-                print(f"Espacio {espacio}: libre")
+# Formaciones
+pos_circulo = formar_circulo()
+pos_cuadrado = formar_cuadrado()
 
-# Ejemplo de uso
-parqueadero = Parqueadero(capacidad=5, tarifa_por_hora=2000)
+# Visualización
+fig, axs = plt.subplots(1, 2, figsize=(10,5))
 
-parqueadero.asignar_espacio("ABC123")
-time.sleep(2)  # Simula tiempo de parqueo
-parqueadero.liberar_espacio(1)
-parqueadero.estado_parqueadero()
+axs[0].scatter(pos_circulo[:,0], pos_circulo[:,1], color="blue")
+axs[0].set_title("Formación en círculo")
+axs[0].axis("equal")
+
+axs[1].scatter(pos_cuadrado[:,0], pos_cuadrado[:,1], color="red")
+axs[1].set_title("Formación en cuadrado")
+axs[1].axis("equal")
+
+plt.show()
