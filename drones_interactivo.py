@@ -1,77 +1,56 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import threading
+import pygame
+import random
+import sys
 
-# Número de drones
-n_drones = 10
-drones = np.zeros((n_drones, 2))
+# Configuración inicial
+WIDTH, HEIGHT = 800, 600
+NUM_DRONES = 10
+FPS = 10
 
-def formar_circulo(radio=5):
-    angulos = np.linspace(0, 2*np.pi, n_drones, endpoint=False)
-    return np.column_stack((radio*np.cos(angulos), radio*np.sin(angulos)))
+class Drone:
+    def __init__(self, drone_id):
+        self.drone_id = drone_id
+        self.x = random.randint(50, WIDTH-50)
+        self.y = random.randint(50, HEIGHT-50)
+        self.color = (random.randint(50,255), random.randint(50,255), random.randint(50,255))
+        self.radius = 10
 
-def formar_cuadrado(lado=8):
-    puntos = []
-    for i in range(n_drones):
-        if i < n_drones/4:
-            puntos.append([i*(lado/(n_drones/4)), 0])
-        elif i < n_drones/2:
-            puntos.append([lado, (i-n_drones/4)*(lado/(n_drones/4))])
-        elif i < 3*n_drones/4:
-            puntos.append([lado-(i-n_drones/2)*(lado/(n_drones/4)), lado])
-        else:
-            puntos.append([0, lado-(i-3*n_drones/4)*(lado/(n_drones/4))])
-    return np.array(puntos) - lado/2
+    def move(self):
+        dx = random.choice([-10, 0, 10])
+        dy = random.choice([-10, 0, 10])
+        self.x = max(self.radius, min(WIDTH-self.radius, self.x + dx))
+        self.y = max(self.radius, min(HEIGHT-self.radius, self.y + dy))
 
-def formar_triangulo(lado=8):
-    puntos = []
-    for i in range(n_drones):
-        if i < n_drones/3:
-            puntos.append([i*(lado/(n_drones/3)), 0])
-        elif i < 2*n_drones/3:
-            puntos.append([lado - (i-n_drones/3)*(lado/(n_drones/3)), lado])
-        else:
-            puntos.append([0 + (i-2*n_drones/3)*(lado/(n_drones/3)), (lado/2)])
-    return np.array(puntos) - lado/2
+    def draw(self, screen):
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
 
-# Diccionario de órdenes
-ordenes = {
-    "circulo": formar_circulo(),
-    "cuadrado": formar_cuadrado(),
-    "triangulo": formar_triangulo()
-}
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Movimiento sincronizado de drones")
+    clock = pygame.time.Clock()
 
-orden_actual = "circulo"
-objetivo = ordenes[orden_actual]
+    # Crear drones
+    drones = [Drone(i) for i in range(NUM_DRONES)]
 
-# Configuración de la figura
-fig, ax = plt.subplots()
-scat = ax.scatter(drones[:,0], drones[:,1], color="blue")
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
-ax.set_title("Formación de drones")
-ax.axis("equal")
-
-def update(frame):
-    global drones, objetivo
-    drones += 0.1 * (objetivo - drones)  # movimiento suave
-    scat.set_offsets(drones)
-    return scat,
-
-def escuchar_ordenes():
-    global objetivo, orden_actual
+    # Bucle principal
     while True:
-        comando = input("Escribe la formación (circulo, cuadrado, triangulo): ").strip().lower()
-        if comando in ordenes:
-            orden_actual = comando
-            objetivo = ordenes[orden_actual]
-            print(f"➡️ Cambiando formación a: {orden_actual}")
-        else:
-            print("❌ Orden no reconocida. Usa: circulo, cuadrado, triangulo.")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-# Hilo para escuchar órdenes mientras corre la animación
-threading.Thread(target=escuchar_ordenes, daemon=True).start()
+        # Fondo
+        screen.fill((30, 30, 30))
 
-ani = animation.FuncAnimation(fig, update, frames=200, interval=50, blit=True)
-plt.show()
+        # Mover y dibujar drones
+        for drone in drones:
+            drone.move()
+            drone.draw(screen)
+
+        # Actualizar pantalla
+        pygame.display.flip()
+        clock.tick(FPS)
+
+if __name__ == "__main__":
+    main()
