@@ -1,11 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import threading
 
 # Número de drones
 n_drones = 10
-
-# Posiciones iniciales (todos en el origen)
 drones = np.zeros((n_drones, 2))
 
 def formar_circulo(radio=5):
@@ -43,7 +42,6 @@ ordenes = {
     "triangulo": formar_triangulo()
 }
 
-# Orden inicial
 orden_actual = "circulo"
 objetivo = ordenes[orden_actual]
 
@@ -57,11 +55,23 @@ ax.axis("equal")
 
 def update(frame):
     global drones, objetivo
-    # Movimiento suave hacia la formación objetivo
-    drones += 0.1 * (objetivo - drones)
+    drones += 0.1 * (objetivo - drones)  # movimiento suave
     scat.set_offsets(drones)
     return scat,
 
-ani = animation.FuncAnimation(fig, update, frames=200, interval=50, blit=True)
+def escuchar_ordenes():
+    global objetivo, orden_actual
+    while True:
+        comando = input("Escribe la formación (circulo, cuadrado, triangulo): ").strip().lower()
+        if comando in ordenes:
+            orden_actual = comando
+            objetivo = ordenes[orden_actual]
+            print(f"➡️ Cambiando formación a: {orden_actual}")
+        else:
+            print("❌ Orden no reconocida. Usa: circulo, cuadrado, triangulo.")
 
+# Hilo para escuchar órdenes mientras corre la animación
+threading.Thread(target=escuchar_ordenes, daemon=True).start()
+
+ani = animation.FuncAnimation(fig, update, frames=200, interval=50, blit=True)
 plt.show()
